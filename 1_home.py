@@ -13,7 +13,7 @@ import os
 @st.cache_data
 def load_data():
     cwd = os.getcwd()
-    path = cwd + "\\datasets\\"
+    path = os.path.join(cwd, "/datasets/")
     files_list = os.listdir(path)
 
     files_names = list()
