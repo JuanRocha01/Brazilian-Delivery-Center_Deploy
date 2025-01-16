@@ -39,7 +39,7 @@ dict_dfs = {}
 for file in dict_dfs_paths.keys():
         path_csv = dict_dfs_paths[file]
         #files_names.append(file[:-4])
-        dict_dfs[file] = pd.read_csv(path_csv, encoding='ISO-8859-1')
+        dict_dfs[file] = pd.read_csv(path_csv)
     
 st.session_state["data"] = dict_dfs
 
