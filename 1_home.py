@@ -26,7 +26,11 @@ def load_data():
 
     return dict_dfs 
 
-dict_dfs = load_data()
+dict_dfs = {
+    "channels" : "C:\Users\Dell\OneDrive\Documentos\GitHub\Brazilian-Delivery-Center_Deploy\datasets\channels.csv",
+    "deliveries" : "C:\Users\Dell\OneDrive\Documentos\GitHub\Brazilian-Delivery-Center_Deploy\datasets\deliveries.csv",
+    "drivers": "\GitHub\Brazilian-Delivery-Center_Deploy\datasets\drivers.csv"
+}
     
 st.session_state["data"] = dict_dfs
 
