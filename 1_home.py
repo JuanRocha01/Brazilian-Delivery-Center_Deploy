@@ -27,7 +27,7 @@ def load_data():
     return dict_dfs 
 
 dict_dfs_paths = {
-    "channels" : "\GitHub\Brazilian-Delivery-Center_Deploy\datasets\channels.csv",
+    "channels" : "https://github.com/JuanRocha01/Brazilian-Delivery-Center_Deploy/blob/main/datasets/channels.csv",
     "deliveries" : "\GitHub\Brazilian-Delivery-Center_Deploy\datasets\deliveries.csv",
     "drivers": "\GitHub\Brazilian-Delivery-Center_Deploy\datasets\drivers.csv",
     "hubs":"\GitHub\Brazilian-Delivery-Center_Deploy\datasets\hubs.csv",
@@ -36,10 +36,12 @@ dict_dfs_paths = {
     "stores":"\GitHub\Brazilian-Delivery-Center_Deploy\datasets\stores.csv"
 }
 dict_dfs = {}
+
 for file in dict_dfs_paths.keys():
         path_csv = dict_dfs_paths[file]
+        st.write(path_csv)
         #files_names.append(file[:-4])
-        dict_dfs[file] = pd.read_csv(path_csv)
+        dict_dfs[file] = pd.read_csv(path_csv, encoding='ISO-8859-1')
     
 st.session_state["data"] = dict_dfs
 
