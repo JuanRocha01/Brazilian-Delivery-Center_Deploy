@@ -1,7 +1,8 @@
-#%%
+
 import streamlit as st
 import pandas as pd
 import numpy as np
+import plotly
 import plotly.graph_objects as go
 import os
 
@@ -29,7 +30,7 @@ dict_dfs = load_data()
     
 st.session_state["data"] = dict_dfs
 
-#%%
+
 # Transformando os dados para o formato datetime
 for moment in range(14,22):
     dict_dfs["orders"][dict_dfs["orders"].columns[moment]] = pd.to_datetime(dict_dfs["orders"][dict_dfs["orders"].columns[moment]], format="%m/%d/%Y %I:%M:%S %p", errors='coerce')
@@ -38,7 +39,7 @@ dict_dfs["orders"]["prod_time"] =  pd.to_datetime(dict_dfs["orders"]['order_mome
 dict_dfs["orders"]['idle_time'] = pd.to_datetime(dict_dfs["orders"]['order_moment_collected']) - pd.to_datetime(dict_dfs["orders"]['order_moment_ready'])
 dict_dfs["orders"]['deli_time'] = pd.to_datetime(dict_dfs["orders"]['order_moment_delivering']) - pd.to_datetime(dict_dfs["orders"]['order_moment_collected'])
 
-#%%
+
 # Transformando alguns dados em tipo categórico
 ## Status de Pedido há apenas duas possibilidade
 dict_dfs["orders"]["order_status"] = pd.Categorical(dict_dfs["orders"]["order_status"])

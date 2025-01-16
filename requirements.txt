@@ -3,3 +3,4 @@ plotly
 pandas
 numpy
 calendar
+plotly.graph_objects
