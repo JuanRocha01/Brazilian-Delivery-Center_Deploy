@@ -29,7 +29,11 @@ def load_data():
 dict_dfs = {
     "channels" : "\GitHub\Brazilian-Delivery-Center_Deploy\datasets\channels.csv",
     "deliveries" : "\GitHub\Brazilian-Delivery-Center_Deploy\datasets\deliveries.csv",
-    "drivers": "\GitHub\Brazilian-Delivery-Center_Deploy\datasets\drivers.csv"
+    "drivers": "\GitHub\Brazilian-Delivery-Center_Deploy\datasets\drivers.csv",
+    "hubs":"\GitHub\Brazilian-Delivery-Center_Deploy\datasets\hubs.csv",
+    "orders":"\GitHub\Brazilian-Delivery-Center_Deploy\datasets\orders.csv",
+    "payments":"\GitHub\Brazilian-Delivery-Center_Deploy\datasets\payments.csv",
+    "stores":"\GitHub\Brazilian-Delivery-Center_Deploy\datasets\stores.csv"
 }
     
 st.session_state["data"] = dict_dfs
