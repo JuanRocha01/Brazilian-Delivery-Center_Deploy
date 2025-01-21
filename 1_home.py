@@ -11,45 +11,39 @@ import os
 # essa @st.cache_data ajuda a "proteger" esses dados
 # uma vez executada a função armazenamos ela na cache
 @st.cache_data
-def load_data():
-    cwd = os.getcwd()
-    path = os.path.join(cwd, "/datasets/")
-    files_list = os.listdir(path)
-
-    files_names = list()
-    dict_dfs = dict()
-
-    for file in files_list:
-        path_csv = path + file
-        files_names.append(file[:-4])
-        dict_dfs[files_names[-1]] = pd.read_csv(path_csv, encoding='ISO-8859-1')
+def load_data(path):
+    files_list = {"channels" : "channels.csv",
+                  "deliveries": "deliveries.csv",
+                  "drivers" : "drivers.csv",
+                  "hubs" : "hubs.csv",
+                  "orders": "orders.csv",
+                  "payments": "payments.csv",
+                  "stores": "stores.csv"}
+    dict_dfs = {}
+    for file_name in files_list:
+        path_csv = path + files_list[file_name]
+        dict_dfs[file_name] = pd.read_csv(path_csv, encoding='ISO-8859-1')
 
     return dict_dfs 
 
-dict_dfs_paths = {
-    "channels" : "https://github.com/JuanRocha01/Brazilian-Delivery-Center_Deploy/blob/main/datasets/channels.csv",
-    "deliveries" : "\GitHub\Brazilian-Delivery-Center_Deploy\datasets\deliveries.csv",
-    "drivers": "\GitHub\Brazilian-Delivery-Center_Deploy\datasets\drivers.csv",
-    "hubs":"\GitHub\Brazilian-Delivery-Center_Deploy\datasets\hubs.csv",
-    "orders":"\GitHub\Brazilian-Delivery-Center_Deploy\datasets\orders.csv",
-    "payments":"\GitHub\Brazilian-Delivery-Center_Deploy\datasets\payments.csv",
-    "stores":"\GitHub\Brazilian-Delivery-Center_Deploy\datasets\stores.csv"
-}
-dict_dfs = {}
+#cwd = os.getcwd()
+#path = cwd+ "\\datasets\\"
 
-for file in dict_dfs_paths.keys():
-        path_csv = dict_dfs_paths[file]
-        st.write(path_csv)
-        #files_names.append(file[:-4])
-        dict_dfs[file] = pd.read_csv(path_csv, encoding='ISO-8859-1', sep=',')
-    
-st.session_state["data"] = dict_dfs
+# datasets of my github directory
+git_path = "https://raw.githubusercontent.com/JuanRocha01/Brazilian-Delivery-Center_Deploy/refs/heads/main/datasets/"
 
+# check if data already persist to not recach on reruns
+if "data" not in st.session_state:
+    #load the data from my github directory////
+    dict_dfs = load_data(git_path)    
+else:
+    dict_dfs = st.session_state["data"]
 
 # Transformando os dados para o formato datetime
 for moment in range(14,22):
     dict_dfs["orders"][dict_dfs["orders"].columns[moment]] = pd.to_datetime(dict_dfs["orders"][dict_dfs["orders"].columns[moment]], format="%m/%d/%Y %I:%M:%S %p", errors='coerce')
 
+# Calculando e inserindo diretamente no DF tempo de produção, coleta e entrega
 dict_dfs["orders"]["prod_time"] =  pd.to_datetime(dict_dfs["orders"]['order_moment_created']) - pd.to_datetime(dict_dfs["orders"]['order_moment_ready']) 
 dict_dfs["orders"]['idle_time'] = pd.to_datetime(dict_dfs["orders"]['order_moment_collected']) - pd.to_datetime(dict_dfs["orders"]['order_moment_ready'])
 dict_dfs["orders"]['deli_time'] = pd.to_datetime(dict_dfs["orders"]['order_moment_delivering']) - pd.to_datetime(dict_dfs["orders"]['order_moment_collected'])
@@ -76,3 +70,7 @@ dict_dfs["payments"]["payment_status"] = pd.Categorical(dict_dfs["payments"]["pa
 ## Segmento do Lojistas há apenas duas opções
 dict_dfs["stores"]["store_name"] = pd.Categorical(dict_dfs["stores"]["store_name"])
 dict_dfs["stores"]["store_segment"] = pd.Categorical(dict_dfs["stores"]["store_segment"])
+
+#carregando dados para o cach apenas se eles já não estiverem lá
+if "data" not in st.session_state:
+    st.session_state["data"] = dict_dfs
