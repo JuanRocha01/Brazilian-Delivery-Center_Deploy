@@ -89,7 +89,11 @@ f_bar_monthprofit.update_layout(title="Lucro Operacional Mensal")
 st.title("Análise Exploratória de Dados")
 st.subheader("Explorando a performance econômica")
 st.markdown("""
-Com o objetivo de identificar potenciais problemas e gerar insights aos stakeholders
+Com o objetivo de identificar potenciais problemas de rentabilidade e gerar insights aos stakeholders interessados, há uma análise exploratória das informações disponibilizadas pelo banco de dados responsável com o seguinte modelo relacional: Apesar de termos as informações de cada pedido, fornecedor e entregador separados por região e hub, os dados devem ser devidamente tratados e ainda precisamos calcular o lucro da operação. 
+""")
+st.image("https://api-club-file.cb.hotmart.com/public/v5/files/1b61c3c1-846f-4037-9e48-9277f551f429")
+st.markdown("""
+Observe que apesar de termos as informações de cada pedido, fornecedor e entregador separados por região e hub, os dados devem ser devidamente tratados e ainda precisamos calcular as receitas e custos operacionais para saber o lucro gerencial da operação. 
 """)
 st.plotly_chart(f_qntd_pedidos)
 st.plotly_chart(f_bar_monthprofit)
