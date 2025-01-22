@@ -46,7 +46,6 @@ f_qntd_pedidos = go.Figure(data=go.Scatter(
 ))
 f_qntd_pedidos.update_yaxes(rangemode="tozero")
 f_qntd_pedidos.update_layout(title="Número de Pedidos em 2021")
-st.plotly_chart(f_qntd_pedidos)
 
         ## Crescimento do Lucro ao mês
             ### Delivery Center get 15% of the total order amount paid by the costumer
@@ -85,4 +84,12 @@ f_bar_monthprofit = go.Figure(data=go.Bar(
     marker_color= cmap_4ptop
 ))
 f_bar_monthprofit.update_layout(title="Lucro Operacional Mensal")
+
+####------ Markdown ----------------------------------------------------------------------------------
+st.title("Análise Exploratória de Dados")
+st.subheader("Explorando a performance econômica")
+st.markdown("""
+Com o objetivo de identificar potenciais problemas e gerar insights aos stakeholders
+""")
+st.plotly_chart(f_qntd_pedidos)
 st.plotly_chart(f_bar_monthprofit)
