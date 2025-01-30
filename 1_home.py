@@ -26,8 +26,8 @@ def load_data(path):
 
     return dict_dfs 
 
-#cwd = os.getcwd()
-#path = cwd+ "\\datasets\\"
+cwd = os.getcwd()
+path = cwd+ "\\datasets\\"
 
 # datasets of my github directory
 git_path = "https://raw.githubusercontent.com/JuanRocha01/Brazilian-Delivery-Center_Deploy/refs/heads/main/datasets/"
@@ -35,7 +35,7 @@ git_path = "https://raw.githubusercontent.com/JuanRocha01/Brazilian-Delivery-Cen
 # check if data already persist to not recach on reruns
 if "data" not in st.session_state:
     #load the data from my github directory////
-    dict_dfs = load_data(git_path)    
+    dict_dfs = load_data(path)    
 else:
     dict_dfs = st.session_state["data"]
 
