@@ -2,11 +2,13 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+from plotly._subplots import make_subplots
 import calendar
+import io
 
 #----- Configurações da página
 st.set_page_config(
-    page_title="Dashboard",
+    page_title="EDA - Análise Exploratória",
     layout="wide"
 )
 #----- color pallettes
@@ -33,20 +35,77 @@ filtered_orders["MÊS"] = filtered_orders["order_created_month"].apply(lambda x:
 #-----
     # Analisando as informações disponíveis
 ##------ Crescimento de Número de Pedidos
-n_pedidos = pd.DataFrame(df_orders.groupby("order_created_month")["order_id"].nunique())
-n_pedidos["n_mes"] = n_pedidos.index
-n_pedidos["MÊS"] = n_pedidos["n_mes"].apply(lambda x: calendar.month_name[x])
-f_qntd_pedidos = go.Figure(data=go.Scatter(
-    x=n_pedidos["MÊS"],
-    y=n_pedidos["order_id"],
-    text=n_pedidos["order_id"],
-    textposition="top right",
+qntd_pedidos = pd.pivot_table(data=filtered_orders,values='order_id' ,columns=['order_created_month'], index=['store_segment'], aggfunc='count',observed=False)
+
+meses_in = {}
+for i in qntd_pedidos.columns:
+    meses_in[i] = calendar.month_name[i]
+qntd_pedidos=qntd_pedidos.rename(columns=meses_in)
+
+f_qntd_pedidos = go.Figure()
+f_qntd_pedidos.add_trace( go.Scatter(
+    x = qntd_pedidos.columns,
+    y = qntd_pedidos.loc["GOOD"],
+    name="Mercado",
+    fill = 'tozeroy',
     marker=dict(color='#5D69B1', size=8),
                   line=dict(color='#52BCA3', width=1)
 ))
+
+f_qntd_pedidos.add_trace( go.Scatter(
+    x = qntd_pedidos.columns,
+    y = qntd_pedidos.loc["FOOD"],
+    name= "Restaurante",
+    fill = 'tonexty',
+    marker=dict(color='#ba181b', size=8),
+                  line=dict(color='#e5383b', width=1),
+))
+
+n_pedidos = pd.DataFrame(df_orders.groupby("order_created_month")["order_id"].nunique())
+n_pedidos["n_mes"] = n_pedidos.index
+n_pedidos["MÊS"] = n_pedidos["n_mes"].apply(lambda x: calendar.month_name[x])
+
 f_qntd_pedidos.update_yaxes(rangemode="tozero")
 f_qntd_pedidos.update_layout(title="Número de Pedidos em 2021")
 
+##------- Crescimento de Pedidos por cidade
+qntd_pedidos_city = pd.pivot_table(data=filtered_orders,values='order_id' ,columns=['order_created_month'], index=['hub_city','store_segment'], aggfunc='count',observed=False)
+
+meses_in = {}
+for i in qntd_pedidos_city.columns:
+    meses_in[i] = calendar.month_name[i]
+qntd_pedidos_city=qntd_pedidos_city.rename(columns=meses_in)
+
+cities = filtered_orders["hub_city"].unique()
+f_qntd_pedidos_cities = make_subplots(rows=2, cols=2, subplot_titles=cities)
+
+i = 0
+for r in range(1,3):
+    for c in range(1,3):
+        f_qntd_pedidos_cities.add_trace(go.Scatter(
+            x = qntd_pedidos_city.loc[cities[i]].columns,
+            y = qntd_pedidos_city.loc[cities[i]].loc["GOOD"],
+            name="Mercado",
+            fill = 'tozeroy',
+            marker=dict(color='#5D69B1', size=8),
+                  line=dict(color='#52BCA3', width=1),
+            ),
+            row=r,
+            col=c
+        )
+        f_qntd_pedidos_cities.add_trace( go.Scatter(
+            x = qntd_pedidos_city.loc[cities[i]].columns,
+            y = qntd_pedidos_city.loc[cities[i]].loc["FOOD"],
+            name= "Restaurante",
+            fill = 'tonexty',
+            marker=dict(color='#ba181b', size=8),
+                        line=dict(color='#e5383b', width=1),
+            ),
+            row=r,
+            col=c
+        )
+        i += 1
+f_qntd_pedidos_cities.update_layout(showlegend=False, title="Evolução do Número de Pedidos por Cidade")
 ##------  Crescimento do Lucro ao mês
             ### Delivery Center get 15% of the total order amount paid by the costumer
 filtered_orders["profit_percent_order_amount"]=.15 * filtered_orders["order_amount"]
@@ -87,27 +146,21 @@ f_bar_monthprofit = go.Figure(data=go.Bar(
 f_bar_monthprofit.update_layout(title="Lucro Operacional Mensal")
 
 ##------  Lucro por estado
-df_hub_store = df_stores.merge(df_hubs, on="hub_id")
-total_host = {}
-for i in range(1,5):
-    monthly_hosted = grouped_stores_month_year[grouped_stores_month_year.index.get_level_values(1).isin([i])]
-    total_host[i] = df_hub_store.merge(monthly_hosted,
-                                             on="store_id")
-k = 1
-hub_monthly_plan = pd.DataFrame()
-for i in n_pedidos["MÊS"]:
-    hub_monthly_plan[i] = pd.DataFrame(total_host[k].groupby("hub_city", observed=False)["store_plan_price"].sum())
-    k += 1
+
+stores_month_year_b = filtered_orders[["order_created_month","MÊS","store_id"]].copy()
+grouped_stores_month_year_b = stores_month_year_b.groupby(["order_created_month","MÊS","store_id"]).nunique().reset_index()
+grouped_stores_month_year_b = grouped_stores_month_year_b.merge(df_stores, on='store_id')
+grouped_stores_month_year_b = grouped_stores_month_year_b.merge(df_hubs, on="hub_id")
+hub_monthly_plan = pd.pivot_table(data=grouped_stores_month_year_b, values="store_plan_price", index="hub_city", columns="order_created_month", aggfunc="sum", observed=False)
+
 opProfit_city = pd.pivot_table(data=filtered_orders, values="profit_aftTaxes", index=["hub_city"], columns=["order_created_month"], aggfunc='sum', observed=False)
+
+opProfit_city=opProfit_city + hub_monthly_plan
 
 meses_in = {}
 for i in opProfit_city.columns:
     meses_in[i] = calendar.month_name[i]
 opProfit_city=opProfit_city.rename(columns=meses_in)
-opProfit_city=opProfit_city + hub_monthly_plan
-
-for city in opProfit_city.index:
-    print(city)
 
 bar_cityprofit = []
 k = 0
@@ -125,8 +178,8 @@ f_bar_cityprofit=go.Figure(
 tkmedio_hub = pd.pivot_table(data=filtered_orders, values="profit_aftTaxes", index=["hub_name"], columns=["store_segment"], aggfunc='sum', observed=False) / pd.pivot_table(data=filtered_orders, values="RECEITA BRUTA", index=["hub_name"], columns=["store_segment"], aggfunc='count', observed=False)
 
 f_box_tkmedio_segment = go.Figure()
-f_box_tkmedio_segment.add_traces(go.Box(x=tkmedio_hub["FOOD"], marker_color="red", name="Alimentação"))
-f_box_tkmedio_segment.add_traces(go.Box(x=tkmedio_hub["GOOD"], marker_color="blue", name="Produtos"))
+f_box_tkmedio_segment.add_traces(go.Box(x=tkmedio_hub["FOOD"], marker_color="#e5383b", name="Restaurante"))
+f_box_tkmedio_segment.add_traces(go.Box(x=tkmedio_hub["GOOD"], marker_color="#52BCA3", name="Mercado"))
 f_box_tkmedio_segment.add_vline(x=0)
 #f_box_tkmedio_segment.add_vline(x=6)
 f_box_tkmedio_segment.update_layout(title="Distribuição do Lucro Unitário Médio por Segmento")
@@ -141,18 +194,14 @@ df_profit_hub_monthly = df_profit_hub_monthly.merge(df_hubs, on="hub_name")[["M�
 f_box_profit_city = go.Figure()
 df_profit_hub_monthly = df_profit_hub_monthly[df_profit_hub_monthly["GOOD"]<=40]
 f_box_profit_city.add_traces(
-
-
         go.Box(
-            y=df_profit_hub_monthly["FOOD"],x= df_profit_hub_monthly["hub_city"],name="Alimentação",
-            marker_color="red", 
+            y=df_profit_hub_monthly["FOOD"],x= df_profit_hub_monthly["hub_city"],name="Restaurante",
+            marker_color="#e5383b", 
                         ))
 f_box_profit_city.add_traces(
         go.Box(
-            y=df_profit_hub_monthly["GOOD"],x= df_profit_hub_monthly["hub_city"],name="Produto",
-
-
-            marker_color="blue", 
+            y=df_profit_hub_monthly["GOOD"],x= df_profit_hub_monthly["hub_city"],name="Mercado",
+            marker_color="#52BCA3", 
                         ))
 f_box_profit_city.update_layout(title="Distribuição do Lucro Unitário Médio de Entregas de Comida por Cidade", boxmode='group')
 
@@ -166,73 +215,66 @@ hubs_baixo_lucro = hubs_baixo_lucro.sort_values(by="hub_city")
 
 ####------ Markdown ----------------------------------------------------------------------------------
 st.title("Análise Exploratória de Dados")
-st.subheader("Explorando a performance econômica")
+st.subheader("Problema Objetivo")
 
 st.markdown("""
 Com o objetivo de identificar potenciais problemas de rentabilidade e gerar insights aos stakeholders interessados, há uma análise exploratória das informações disponibilizadas pelo banco de dados responsável com o seguinte modelo relacional: Apesar de termos as informações de cada pedido, fornecedor e entregador separados por região e hub, os dados devem ser devidamente tratados e ainda precisamos calcular o lucro da operação. 
 """)
 st.image("https://api-club-file.cb.hotmart.com/public/v5/files/1b61c3c1-846f-4037-9e48-9277f551f429")
+
+st.subheader("Explorando as Tabelas e Formatos")
+
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    st.dataframe(df_channels, height=120)
+    st.dataframe(df_stores, height=120)
+with col2:
+    st.dataframe(df_deliveries, height=120)
+    st.dataframe(df_payments, height=120)
+with col3:
+    st.dataframe(df_drivers, height=120)
+    st.dataframe(df_hubs, height=120)
+st.dataframe(df_orders, height=120)
+
 st.markdown("""
 Analisando o número de pedidos podemos ver claramente uma elevação no período de março de 2021, início do lockdown no Brasil em razão da pandemia de COVID-19.
 """)
 st.plotly_chart(f_qntd_pedidos)
 st.markdown("""
 Observe também que apesar de termos as informações de cada pedido, fornecedor e entregador separados por região e hub, os dados devem ser devidamente tratados e ainda precisamos calcular as receitas e custos operacionais para saber o lucro gerencial da operação e começar a análise das medidas. 
-Para clarificar os cálculos, temos que realizar a seguinte fórmula:
-            
-$$Lucro Op. = Receita Op. - Custo Op.$$
 
-Sendo que:
-
-$$ReceitaOp. = PercentualdVenda + AlugueldHospedagem + feeEntrega$$
-
-$$PercentualdVenda$$: 15% do valor do pedido
-            
-$$AlugueldHospedagem$$: Valor fixo pago pelo lojista
-            
-$$feeEntrega$$: Parte do custo de entrega pago pelo cliente
-            
-e
-            
-$$CustoOp. = CustodEntrega + KFixoPedido + Impostos$$
-
-$$CustodEntrega$$: Valor Variável pago ao entregador
-            
-$$KFixoPedido$$: Custo médio operacional por pedido realizado é $5 reais
-            
-$$Impostos$$: Impostos devidos ao governo pela operação do Delivery Center
-            
-Assim, observamos uma elevação do lucro operacional seguindo a mesma tendência do aumento de pedidos
+Os componentes de receita do negócio são os 15% do valor do pedido, a taxa de entrega e a mensalidade de hospedagem pago pelo lojista. Já os custos da operação são compostos pelo custo de 5 reais por pedido com entregadores, o custo variável da operação de entrega e os encargos.
+                        
+Com a tabela abaixo podemos perceber que apesar do lucro seguir a mesma tendência do número de pedidos a queda brusca de $100k no mês de abril acende um alerta sobre a volatilidade das margens da empresa.
 """)
 st.plotly_chart(f_bar_monthprofit)
 st.markdown("""
-Apesar disso, quando observamos a composição do lucro por estado temos uma visão clara que há regiões dando prejuízo e como todos os custos variam de acordo com a operação essa perspectiva de aumento de pedidos gera uma expectativa de prejuízo ainda maior.""")
+Quando observamos a composição do lucro por estado temos uma visão clara que há regiões dando prejuízo e como todos os custos variam de acordo com a operação essa perspectiva de aumento de pedidos gera uma expectativa de prejuízo ainda maior.""")
+f_bar_cityprofit.update_layout(title='Lucro Operacional Segmentado por Cidade')
 st.plotly_chart(f_bar_cityprofit)
+st.plotly_chart(f_qntd_pedidos_cities)
 
 total_food_orders = filtered_orders.groupby("store_segment",observed=False)["store_id"].count().loc["FOOD"]
 total_good_orders = filtered_orders.groupby("store_segment",observed=False)["store_id"].count().loc["GOOD"]
 
 
 st.markdown(f"""
-Temos como direcional estratégico uma média maior que $1 de lucro por pedido, e fazendo uma rápida análise vemos que nosso segmento mais lucrativo é o de entrega de produtos que representa {round(100*total_good_orders/len(filtered_orders), 1)}% dos pedidos realizados, já o ramo de entrega de alimentos possui hubs operando com lucro unitário médio abaixo do direcional ou até negativos!
+Tendo como direcional estratégico uma média maior que $1 de lucro por pedido, e fazendo uma rápida análise vemos que nosso segmento mais lucrativo é o de entrega de produtos que representa {round(100*total_good_orders/len(filtered_orders), 1)}% dos pedidos realizados, já o ramo de entrega de alimentos possui hubs operando com lucro unitário médio abaixo do direcional ou até negativos!
 """)
 st.plotly_chart(f_box_tkmedio_segment)
 st.markdown("""Buscando desvendar possíveis detratores de lucro, olhemos a distribuição do lucro unitário médio das cidades percebemos rapidamente que:
             
-    1° Apesar de possuir o maior lucro médio unitário, o segmento de produtos possui o maior desvio padrão
+    1° Apesar de possuir o maior lucro médio unitário, o segmento de produtos de mercado possui o maior desvio padrão já que a quantidade e valor dos componentes da entrega variam bastante
 
-    2° O segmento de entrega de alimentos em Curitiba opera em prejuízo
+    2° O segmento de entrega de alimentos em Curitiba opera totalmente em prejuízo
+    
+    
             """)
 st.plotly_chart(f_box_profit_city)
 
 col1, col2 = st.columns(2)
 with col1:
-    st.write("Hubs que merecem atenção",hubs_baixo_lucro)
-
-st.markdown("""Sendo eles: """)
-    ## Composição Geral de Lucro
-
-with col2:
     meses = filtered_orders["MÊS"].unique()
     mes = st.multiselect("Mês de Análise",meses, default=meses)
 
@@ -247,14 +289,25 @@ with col2:
             (filtered_orders["hub_city"].isin(cidade)) &
             (filtered_orders["store_segment"].isin(produto))].copy()
 
+with col2:
     hubs = filtered_orders_c["hub_name"].unique()
-    hub = st.multiselect("Hubs de Interesse de Analise", hubs, default=hubs)
+    hub = st.selectbox("Hubs de Interesse de Analise", hubs)
+    filtered_orders_c = filtered_orders_c[filtered_orders_c["hub_name"]==hub]
+
+hub_monthly_plan = pd.pivot_table(data=grouped_stores_month_year_b, values="store_plan_price", index="hub_name", columns="order_created_month", aggfunc="sum", observed=False)
 
 
+meses_in = {}
+for i in hub_monthly_plan.columns:
+    meses_in[i] = calendar.month_name[i]
+hub_monthly_plan=hub_monthly_plan.rename(columns=meses_in)
+
+
+st.markdown("""Para investigar melhor quais os detratores de lucro, criei o seguinte gráfico interativo de cascata que mostra a composição de lucro de acordo com os filtros acima selecionados:""")
 # grafico de cascata -------------
 dict_profit_components = {}
 dict_profit_components["Receita Percentual do Pedido"] = filtered_orders_c["profit_percent_order_amount"].sum()
-dict_profit_components["Receita de Hospedagem do Logista"] = hub_monthly_plan.loc[cidade][mes].sum().sum()
+dict_profit_components["Receita de Hospedagem do Logista"] = hub_monthly_plan.loc[hub][mes].sum().sum()
 dict_profit_components["Receita de Taxa de Entrega"] = filtered_orders_c["order_delivery_fee"].sum()
 dict_profit_components["RECEITA BRUTA"] = sum(
     (dict_profit_components["Receita de Hospedagem do Logista"], dict_profit_components["Receita Percentual do Pedido"], dict_profit_components["Receita de Taxa de Entrega"]))
@@ -335,4 +388,8 @@ waterfall_fig.add_hline(y=0, line_width=2, line_dash='dash',
 
 
 st.plotly_chart(waterfall_fig, height=500)
+st.markdown("""A partir disso torna-se claro como a margem realizada de 15% do valor do pedido é insuficiente para cobrir os custos operacionais da região, principalmente por conta do custo unitário de entrega (5$). A titulo de curiosidade, abaixo temos a lista dos hubs que em algum momento não cumpriram o direcional estratégico""")
+st.write(hubs_baixo_lucro)
+
+
 # %%

@@ -35,7 +35,7 @@ git_path = "https://raw.githubusercontent.com/JuanRocha01/Brazilian-Delivery-Cen
 # check if data already persist to not recach on reruns
 if "data" not in st.session_state:
     #load the data from my github directory////
-    dict_dfs = load_data(path)    
+    dict_dfs = load_data(git_path)    
 else:
     dict_dfs = st.session_state["data"]
 
